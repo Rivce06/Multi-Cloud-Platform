@@ -1,12 +1,15 @@
 terraform {
   source = "tfr:///terraform-module/release/helm?version=3.1.1"
 }
+
 generate "grafana_creds" {
   path      = "grafana-secrets.tf"
   if_exists = "overwrite_terragrunt"
   contents  = <<EOF
 resource "kubernetes_namespace" "monitoring" {
-  metadata { name = "monitoring" }
+  metadata {
+    name = "monitoring"
+  }
 }
 
 resource "random_password" "grafana" {
@@ -28,10 +31,10 @@ EOF
 }
 
 inputs = {
-  name       = "argocd"
-  repository = "https://argoproj.github.io/argo-helm"
-  chart      = "argo-cd"
-  namespace  = "argocd"
+  name             = "argocd"
+  repository       = "https://argoproj.github.io/argo-helm"
+  chart            = "argo-cd"
+  namespace        = "argocd"
   create_namespace = true
 
   values = [
@@ -39,25 +42,25 @@ inputs = {
     server:
       extraArgs:
         - --insecure
-    extraObjects:
-      - apiVersion: argoproj.io/v1alpha1
-        kind: Application
-        metadata:
-          name: root-application
-          namespace: argocd
-        spec:
-          project: default
-          source:
-            repoURL: 'https://github.com/Rivce06/k8s-configs.git'
-            targetRevision: HEAD
-            path: bootstrap
-          destination:
-            server: 'https://kubernetes.default.svc'
+      extraObjects:
+        - apiVersion: argoproj.io/v1alpha1
+          kind: Application
+          metadata:
+            name: root-application
             namespace: argocd
-          syncPolicy:
-            automated:
-              prune: true
-              selfHeal: true
+          spec:
+            project: default
+            source:
+              repoURL: 'https://github.com/Rivce06/k8s-configs.git'
+              targetRevision: HEAD
+              path: bootstrap
+            destination:
+              server: 'https://kubernetes.default.svc'
+              namespace: argocd
+            syncPolicy:
+              automated:
+                prune: true
+                selfHeal: true
     EOF
   ]
 }
