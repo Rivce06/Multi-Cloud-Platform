@@ -57,7 +57,13 @@ remote_state {
     encrypt        = true
     dynamodb_table = "terraform-lock-${local.project_name}-${local.env}"
     
-  
+    s3_bucket_public_access_block_configuration = {
+      block_public_acls       = true
+      block_public_policy     = true
+      ignore_public_acls      = true
+      restrict_public_buckets = true
+    }
+
     s3_bucket_query_logging_enabled = false
   }
 }

@@ -9,7 +9,7 @@ inputs = {
   enable_private_endpoint = false
   enable_private_nodes    = false
 
-  http_load_balancing        = true
+  http_load_balancing        = false
   horizontal_pod_autoscaling = true
   workload_identity_enabled  = true
   identity_namespace         = "${local.gcp_project_id}.svc.id.goog"
