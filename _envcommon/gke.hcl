@@ -2,6 +2,10 @@ terraform {
   source = "tfr:///terraform-google-modules/kubernetes-engine/google?version=43.0.0"
 }
 
+locals {
+  project_id = get_env("GCP_PROJECT_ID", "")
+}
+
 inputs = {
   remove_default_node_pool = true
   initial_node_count       = 1

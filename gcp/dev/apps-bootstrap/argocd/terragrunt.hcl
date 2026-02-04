@@ -4,7 +4,7 @@ include "root" {
 }
 
 include "envcommon" {
-  path   = "${get_terragrunt_dir()}/../../../../_envcommon/argocd.hcl"
+  path = "${get_terragrunt_dir()}/../../../../_envcommon/argocd.hcl"
 }
 
 dependency "gke" {
@@ -24,15 +24,17 @@ data "google_client_config" "default" {}
 provider "random" {}
 
 provider "kubernetes" {
-  host                   = "https://$${dependency.gke.outputs.endpoint}"
-  token                  = $${data.google_client_config.default.access_token}
-  cluster_ca_certificate = base64decode(dependency.gke.outputs.ca_certificate)
+  host                   = "https://${dependency.gke.outputs.endpoint}"
+  token                  = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode("${dependency.gke.outputs.ca_certificate}")
 }
 
 provider "helm" {
   kubernetes {
-    host                   = "https://$${dependency.gke.outputs.endpoint}"
-    token                  = $${data.google_client_config.default.access_token}
-    cluster_ca_certificate = base64decode(dependency.gke.outputs.ca_certificate)
+    host                   = "https://${dependency.gke.outputs.endpoint}"
+    token                  = data.google_client_config.default.access_token
+    cluster_ca_certificate = base64decode("${dependency.gke.outputs.ca_certificate}")
   }
+}
+EOF
 }
