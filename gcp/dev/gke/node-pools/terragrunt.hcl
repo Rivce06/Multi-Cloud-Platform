@@ -20,20 +20,21 @@ locals {
   machine_type = try(local.env_vars.locals.gke_machine_type, "e2-standard-2")
 }
 
-inputs = {
-  project_id = include.root.inputs.gcp_project_id
-
-  cluster_name = dependency.gke_cluster.outputs.name
-  location     = dependency.gke_cluster.outputs.location
-
-  name         = "${include.root.inputs.project_name}-${local.env}-np-01"
-  node_count   = local.node_count
-  machine_type = local.machine_type
-
-  node_labels = merge(
-    include.envcommon_np.inputs.node_labels,
-    {
-      env = local.env
+inputs = merge(
+  include.envcommon_np.inputs,
+  {
+    project_id   = include.root.inputs.gcp_project_id
+    cluster_name = dependency.gke_cluster.outputs.name
+    location     = dependency.gke_cluster.outputs.location
+    name         = "${include.root.inputs.project_name}-${local.env}-np-01"
+    
+    node_count   = local.node_count
+    machine_type = local.machine_type
+    spot         = true  
+    
+    node_labels = {
+        env = local.env
+        managed_by = "terragrunt"
     }
-  )
-}
+  }
+)

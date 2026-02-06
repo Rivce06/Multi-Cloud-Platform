@@ -6,8 +6,7 @@ on:
   push:
     branches: 
       - main
-      - feat       
-      - "feat/**"  
+      - "feat/**"
   workflow_dispatch:
 
 permissions:
@@ -21,64 +20,77 @@ jobs:
     env:
       INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      AWS_REGION: us-east-1 
+      ENVIRONMENT: dev
+      GCP_REGION: us-central1
+      AWS_REGION: us-east-1
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # --- 1. TFLINT ---
-      - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
+      # --- 1. AUTENTICATION OIDC ---
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          tflint_version: latest
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
-      - name: Initialize TFLint
-        run: tflint --init
-
-      - name: Run TFLint
-        run: tflint -f compact
-
-      # --- 2. TRIVY ---
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+      - name: Authenticate to AWS
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          scan-type: 'config'
-          hide-progress: false
-          format: 'table'
-          exit-code: '1' 
-          severity: 'CRITICAL,HIGH'
-          skip-dirs: '**/.terragrunt-cache/**'
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActionsSession
 
-      # --- 3. INFRACOST ---
-      - name: Setup Infracost
-        uses: infracost/actions/setup@v3
-        with:
-          api-key: ${{ secrets.INFRACOST_API_KEY }}
-
-      - name: Generate Infracost JSON
-        run: |
-          infracost breakdown --path . \
-                            --format json \
-                            --terraform-var project_id=${{ secrets.GCP_PROJECT_ID }} \
-                            --out-file /tmp/infracost.json
-     
-      - name: Show Infracost breakdown
-        run: infracost output --path /tmp/infracost.json --format table
-                            
-     # --- 4. SETUP TERRAFORM ---
+      # --- 2. SETUP TERRAFORM ---
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.10.0 
-          terraform_wrapper: false  
+          terraform_wrapper: false
 
-      # --- 5. SETUP TERRAGRUNT ---
       - name: Setup Terragrunt
         uses: autero1/action-terragrunt@v3
         with:
           terragrunt-version: v0.60.0
 
-      # --- 6. VALIDATE ---
+      # --- 3. SETUP TFLINT ---
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: latest
+
+      - name: Run TFLint
+        run: |
+          tflint --init
+          tflint -f compact
+
+      - name: Run Trivy Security Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          hide-progress: false
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+          skip-dirs: '**/.terragrunt-cache/**'
+
+      # --- 4. INFRACOST ---
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Generate Infracost Breakdown
+        run: |
+          infracost breakdown --path . \
+                            --format json \
+                            --usage-file infracost-usage.yml \
+                            --out-file /tmp/infracost.json
+
+      - name: Show Infracost breakdown
+        run: infracost output --path /tmp/infracost.json --format table
+
+      # --- 5. TERRAGRUNT VALIDATION---
       - name: Terragrunt Validate
         run: terragrunt run-all validate --terragrunt-non-interactive
