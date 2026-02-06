@@ -29,7 +29,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # --- 1. AUTENTICATION OIDC ---
+      # --- 1. AUTHENTICATION OIDC ---
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -43,7 +43,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: GitHubActionsSession
 
-      # --- 2.TERRAFORM SETUP ---
+      # --- 2. TOOLS SETUP ---
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -55,12 +55,12 @@ jobs:
         with:
           terragrunt-version: v0.60.0
 
-      # --- 3.TFLINT SETUP  ---
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
         with:
           tflint_version: latest
 
+      # --- 3. STATIC ANALYSIS & SECURITY ---
       - name: Run TFLint
         run: |
           tflint --init
@@ -76,7 +76,11 @@ jobs:
           severity: 'CRITICAL,HIGH'
           skip-dirs: '**/.terragrunt-cache/**'
 
-      # --- 4. INFRACOST ---
+      # --- 4. TERRAGRUNT VALIDATION ---
+      - name: Terragrunt Validate
+        run: terragrunt run-all validate --terragrunt-non-interactive
+
+      # --- 5. INFRACOST ---
       - name: Setup Infracost
         uses: infracost/actions/setup@v3
         with:
@@ -92,6 +96,12 @@ jobs:
       - name: Show Infracost breakdown
         run: infracost output --path /tmp/infracost.json --format table
 
-      # --- 5. TERRAGRUNT VALIDATION---
-      - name: Terragrunt Validate
-        run: terragrunt run-all validate --terragrunt-non-interactive
+      # --- 6. POST COMMENT TO PR ---
+      - name: Post Infracost comment
+        if: github.event_name == 'pull_request'
+        run: |
+          infracost comment github --path /tmp/infracost.json \
+                                   --repo $GITHUB_REPOSITORY \
+                                   --github-token ${{ github.token }} \
+                                   --pull-request ${{ github.event.pull_request.number }} \
+                                   --behavior update
