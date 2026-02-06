@@ -24,6 +24,9 @@ jobs:
       ENVIRONMENT: dev
       GCP_REGION: us-central1
       AWS_REGION: us-east-1
+      TERRAGRUNT_DOWNLOAD_SOURCE_RETRY_ATTEMPTS: 5
+      TERRAGRUNT_DOWNLOAD_SOURCE_RETRY_SLEEP_MS: 5000
+      TF_REGISTRY_CLIENT_TIMEOUT: 30
 
     steps:
       - name: Checkout code
@@ -79,10 +82,8 @@ jobs:
       # --- 4. TERRAGRUNT VALIDATION ---
       - name: Terragrunt Validate
         run: |
-          terragrunt run-all validate \
-            --terragrunt-non-interactive \
-            --terragrunt-parallelism 3 \
-            --terragrunt-download-source-retry-attempts 5
+          # Usamos paralelismo 1 para evitar errores de conexión HTTP con el Registry
+          terragrunt run-all validate --terragrunt-non-interactive --terragrunt-parallelism 1
 
       # --- 5. INFRACOST ---
       - name: Setup Infracost
@@ -92,6 +93,7 @@ jobs:
 
       - name: Generate Infracost Breakdown
         run: |
+          # Si no tienes el archivo infracost-usage.yml, borra la línea "--usage-file"
           infracost breakdown --path . \
                             --format json \
                             --usage-file infracost-usage.yml \
