@@ -10,6 +10,7 @@ include "envcommon_np" {
 
 dependency "gke_cluster" {
   config_path = "../cluster"
+  skip_outputs = true
 }
 
 locals {

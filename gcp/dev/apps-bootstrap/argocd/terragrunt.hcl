@@ -9,6 +9,7 @@ include "envcommon" {
 
 dependency "gke" {
   config_path = "../../gke/cluster"
+  skip_outputs = true
 }
 
 dependency "node_pools" {
