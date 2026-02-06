@@ -55,7 +55,7 @@ jobs:
         with:
           terragrunt-version: v0.60.0
 
-      # --- 3. SETUP TFLINT ---
+      # --- 3.TFLINT SETUP  ---
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
         with:
