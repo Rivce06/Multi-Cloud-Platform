@@ -10,24 +10,37 @@ on:
       - "feat/**"  
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write 
+
 jobs:
   validate:
     runs-on: ubuntu-latest
     env:
       INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      AWS_REGION: us-east-1 
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       # --- 1. TFLINT ---
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
-      - run: tflint --init
-      - run: tflint -f compact
+        with:
+          tflint_version: latest
+
+      - name: Initialize TFLint
+        run: tflint --init
+
+      - name: Run TFLint
+        run: tflint -f compact
 
       # --- 2. TRIVY ---
-      - name: Run Trivy vulnerability scanner (IaC)
+      - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'config'
@@ -35,20 +48,37 @@ jobs:
           format: 'table'
           exit-code: '1' 
           severity: 'CRITICAL,HIGH'
+          # Importante: Ignorar carpetas de caché de Terragrunt para evitar ruidos
+          skip-dirs: '**/.terragrunt-cache/**'
 
       # --- 3. INFRACOST ---
       - name: Setup Infracost
         uses: infracost/actions/setup@v3
         with:
           api-key: ${{ secrets.INFRACOST_API_KEY }}
-      
-      # --- 4. Generate Infracost JSON ---  
+
+      # 
       - name: Generate Infracost JSON
-        run: infracost breakout --path . --format json --out-file /tmp/infracost.json
-      
+        run: |
+          infracost breakdown --path . \
+                            --format json \
+                            --out-file /tmp/infracost.json
+
+      # 
       - name: Post Infracost Comment
         if: github.event_name == 'pull_request'
-        uses: infracost/actions/comment@v2
+        run: |
+          infracost comment github --path /tmp/infracost.json \
+                                   --repo $GITHUB_REPOSITORY \
+                                   --github-token ${{ github.token }} \
+                                   --pull-request ${{ github.event.pull_request.number }} \
+                                   --behavior update
+
+      # --- 4. TERRAGRUNT VALIDATE ---
+      - name: Setup Terragrunt
+        uses: autero1/action-terragrunt@v3
         with:
-          path: /tmp/infracost.json
-          behavior: update
+          terragrunt_version: latest
+
+      - name: Terragrunt Validate
+        run: terragrunt run-all validate --terragrunt-non-interactive
