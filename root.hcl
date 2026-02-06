@@ -1,8 +1,7 @@
 locals {
   account_vars = read_terragrunt_config(find_in_parent_folders("account.hcl"), { locals = {} })
-  env_vars     = read_terragrunt_config(find_in_parent_folders("env.hcl"), { locals = {} })
+  env_vars      = read_terragrunt_config(find_in_parent_folders("env.hcl"), { locals = {} })
 
- 
   cloud = contains(split("/", get_terragrunt_dir()), "aws") ? "aws" : (
     contains(split("/", get_terragrunt_dir()), "gcp") ? "gcp" : "unknown"
   )
@@ -57,7 +56,7 @@ remote_state {
     encrypt        = true
     dynamodb_table = "terraform-lock-${local.project_name}-${local.env}"
   }
-} 
+}
 
 # ---------------
 # GLOBAL INPUTS
