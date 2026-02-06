@@ -78,7 +78,11 @@ jobs:
 
       # --- 4. TERRAGRUNT VALIDATION ---
       - name: Terragrunt Validate
-        run: terragrunt run-all validate --terragrunt-non-interactive
+        run: |
+          terragrunt run-all validate \
+            --terragrunt-non-interactive \
+            --terragrunt-parallelism 3 \
+            --terragrunt-download-source-retry-attempts 5
 
       # --- 5. INFRACOST ---
       - name: Setup Infracost

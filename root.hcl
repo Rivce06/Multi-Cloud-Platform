@@ -45,20 +45,24 @@ EOF
 # REMOTE STATE
 # -------------
 remote_state {
+ remote_state {
   backend = "s3"
   generate = {
     path      = "backend.tf"
     if_exists = "overwrite_terragrunt"
   }
+  
   config = {
     bucket         = lower("terraform-state-${local.project_name}-${local.env}")
     key            = "${path_relative_to_include()}/terraform.tfstate"
     region         = local.aws_region
     encrypt        = true
     dynamodb_table = "terraform-lock-${local.project_name}-${local.env}"
+  }
 
+  skip_outputs = true
+  config_extra_arguments = {
     skip_bucket_creation = true
-    disable_bucket_update = true
   }
 }
 
