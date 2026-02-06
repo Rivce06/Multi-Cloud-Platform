@@ -43,7 +43,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: GitHubActionsSession
 
-      # --- 2. SETUP TERRAFORM ---
+      # --- 2.TERRAFORM SETUP ---
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
