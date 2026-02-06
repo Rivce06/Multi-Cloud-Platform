@@ -4,7 +4,7 @@ include "root" {
 }
 
 include "envcommon" {
-  path   = "${get_terragrunt_dir()}/../../../_envcommon/network.hcl"
+  path   = find_in_parent_folders("_envcommon/network.hcl")
   expose = true
 }
 

@@ -1,0 +1,49 @@
+name: 'Infra Validation (Feat)'
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  push:
+    branches: [ "feat/*", "feature/*" ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- 1. TFLINT ---
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+      - run: tflint --init
+      - run: tflint -f compact
+
+      # --- 2. TRIVY ---
+      - name: Run Trivy vulnerability scanner (IaC)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          hide-progress: false
+          format: 'table'
+          exit-code: '1' 
+          severity: 'CRITICAL,HIGH'
+
+      # --- 3. INFRACOST ---
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+      
+      - name: Generate Infracost JSON
+        run: infracost breakout --path . --format json --out-file /tmp/infracost.json
+      
+      - name: Post Infracost Comment
+        if: github.event_name == 'pull_request'
+        uses: infracost/actions/comment@v2
+        with:
+          path: /tmp/infracost.json
+          behavior: update

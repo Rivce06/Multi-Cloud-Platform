@@ -7,6 +7,7 @@ locals {
 }
 
 inputs = {
+  deletion_protection      = false
   remove_default_node_pool = true
   initial_node_count       = 1
 

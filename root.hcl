@@ -55,6 +55,7 @@ remote_state {
     key            = "${path_relative_to_include()}/terraform.tfstate"
     region         = local.aws_region
     encrypt        = true
+    versioning     = true
     dynamodb_table = "terraform-lock-${local.project_name}-${local.env}"
     
     s3_bucket_public_access_block_configuration = {
@@ -65,6 +66,15 @@ remote_state {
     }
 
     s3_bucket_query_logging_enabled = false
+
+    s3_bucket_lifecycle_rules = [
+      {
+        enabled = true
+        noncurrent_version_expiration = {
+          days = 1
+        }
+      }
+    ]
   }
 }
 
