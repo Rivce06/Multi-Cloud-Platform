@@ -48,7 +48,6 @@ jobs:
           format: 'table'
           exit-code: '1' 
           severity: 'CRITICAL,HIGH'
-          # Importante: Ignorar carpetas de caché de Terragrunt para evitar ruidos
           skip-dirs: '**/.terragrunt-cache/**'
 
       # --- 3. INFRACOST ---
@@ -57,28 +56,18 @@ jobs:
         with:
           api-key: ${{ secrets.INFRACOST_API_KEY }}
 
-      # 
       - name: Generate Infracost JSON
         run: |
           infracost breakdown --path . \
                             --format json \
+                            --terraform-var project_id=${{ secrets.GCP_PROJECT_ID }} \
                             --out-file /tmp/infracost.json
-
-      # 
-      - name: Post Infracost Comment
-        if: github.event_name == 'pull_request'
-        run: |
-          infracost comment github --path /tmp/infracost.json \
-                                   --repo $GITHUB_REPOSITORY \
-                                   --github-token ${{ github.token }} \
-                                   --pull-request ${{ github.event.pull_request.number }} \
-                                   --behavior update
 
       # --- 4. TERRAGRUNT VALIDATE ---
       - name: Setup Terragrunt
         uses: autero1/action-terragrunt@v3
         with:
-          terragrunt_version: latest
+          terragrunt-version: 0.60.0 
 
       - name: Terragrunt Validate
         run: terragrunt run-all validate --terragrunt-non-interactive
