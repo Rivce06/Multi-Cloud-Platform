@@ -9,7 +9,7 @@ locals {
 }
 
 terraform {
-  source = "tfr:///terraform-google-modules/artifact-registry/google?version=0.8.2"
+  source = "git::https://github.com/terraform-google-modules/terraform-google-artifact-registry.git?ref=v0.8.2"
 }
 
 inputs = {

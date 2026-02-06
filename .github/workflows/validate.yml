@@ -82,7 +82,6 @@ jobs:
       # --- 4. TERRAGRUNT VALIDATION ---
       - name: Terragrunt Validate
         run: |
-          # Usamos paralelismo 1 para evitar errores de conexión HTTP con el Registry
           terragrunt run-all validate --terragrunt-non-interactive --terragrunt-parallelism 1
 
       # --- 5. INFRACOST ---
