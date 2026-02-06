@@ -3,7 +3,7 @@ terraform {
 }
 
 locals {
-  project_id = get_env("GCP_PROJECT_ID", "")
+  gcp_project_id = get_env("GCP_PROJECT_ID", "")
 }
 
 inputs = {

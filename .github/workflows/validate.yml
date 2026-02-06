@@ -62,7 +62,10 @@ jobs:
                             --format json \
                             --terraform-var project_id=${{ secrets.GCP_PROJECT_ID }} \
                             --out-file /tmp/infracost.json
-
+     
+      - name: Show Infracost breakdown
+        run: infracost output --path /tmp/infracost.json --format table
+                            
       # --- 4. TERRAGRUNT VALIDATE ---
       - name: Setup Terragrunt
         uses: autero1/action-terragrunt@v3
