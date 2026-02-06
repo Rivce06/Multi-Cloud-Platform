@@ -58,6 +58,7 @@ remote_state {
     dynamodb_table = "terraform-lock-${local.project_name}-${local.env}"
 
     skip_bucket_creation = true
+    disable_bucket_update = true
   }
 }
 
