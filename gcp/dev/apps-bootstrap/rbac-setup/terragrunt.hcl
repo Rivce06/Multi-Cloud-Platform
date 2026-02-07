@@ -3,7 +3,7 @@ include "root" {
 }
 
 locals {
-  project_id = include.root.inputs.gcp_project_id
+  project_id = include.root.locals.gcp_project_id
 }
 
 dependency "gke" {
