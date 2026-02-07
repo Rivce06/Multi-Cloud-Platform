@@ -22,7 +22,8 @@ dependency "gke" {
 }
 
 dependency "node_pools" {
-  config_path = "../../gke/node-pools"
+  config_path  = "../../gke/node-pools"
+  skip_outputs = true
 }
 
 generate "providers" {

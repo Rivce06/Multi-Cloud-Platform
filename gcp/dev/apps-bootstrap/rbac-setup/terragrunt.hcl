@@ -3,51 +3,54 @@ include "root" {
   expose = true
 }
 
-locals {
-  project_id = include.root.locals.gcp_project_id
+terraform {
+  source = "."
 }
 
 dependency "gke" {
   config_path = "../../gke/cluster"
-
+  
   mock_outputs = {
-    name     = "test-gke"
-    location = "us-central1"
+    endpoint       = "1.2.3.4"
+    ca_certificate = "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCg=="
   }
-
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
-}
-
-terraform {
-  source = "tfr:///terraform-google-modules/kubernetes-engine/google//modules/kubernetes-manifest?version=43.0.0"
+  mock_outputs_allowed_terraform_commands = ["validate"]
 }
 
 inputs = {
-  project_id   = local.project_id
-  location     = dependency.gke.outputs.location
-  cluster_name = dependency.gke.outputs.name
-
+  host                   = dependency.gke.outputs.endpoint
+  cluster_ca_certificate = dependency.gke.outputs.ca_certificate
+  
   manifests = [
+    <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+EOF
+    ,
     <<EOF
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: argocd-manager
+  name: bootstrap-manager
   namespace: argocd
   annotations:
-    iam.gke.io/gcp-service-account: gke-workloads@${local.project_id}.iam.gserviceaccount.com
----
+    iam.gke.io/gcp-service-account: gke-workloads@${include.root.locals.gcp_project_id}.iam.gserviceaccount.com
+EOF
+    ,
+    <<EOF
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: argocd-manager-admin
+  name: bootstrap-manager-admin
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: cluster-admin
 subjects:
 - kind: ServiceAccount
-  name: argocd-manager
+  name: bootstrap-manager
   namespace: argocd
 EOF
   ]
