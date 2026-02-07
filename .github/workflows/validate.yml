@@ -63,7 +63,13 @@ jobs:
         with:
           tflint_version: latest
 
-      # --- 3. STATIC ANALYSIS & SECURITY ---
+      # --- 3. STATIC ANALYSIS & LINTING ---
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.1
+
+      - name: Terragrunt Format Check
+        run: terragrunt hclfmt --terragrunt-check --terragrunt-diff
+
       - name: Run TFLint
         run: |
           tflint --init
@@ -75,7 +81,7 @@ jobs:
           scan-type: 'config'
           hide-progress: false
           format: 'table'
-          exit-code: '0'
+          exit-code: '1' 
           severity: 'CRITICAL,HIGH'
           skip-dirs: '**/.terragrunt-cache/**'
 
@@ -83,9 +89,8 @@ jobs:
       - name: Terragrunt Validate
         run: |
           terragrunt run-all validate \
-           --terragrunt-non-interactive \
-           --terragrunt-parallelism 1 \
-           --terragrunt-exclude-dir gcp/dev/artifact-registry
+            --terragrunt-non-interactive \
+            --terragrunt-parallelism 4
 
       # --- 5. INFRACOST ---
       - name: Setup Infracost
