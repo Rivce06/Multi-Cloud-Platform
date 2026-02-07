@@ -15,7 +15,11 @@ dependency "vpc" {
     network_name  = "mock-vpc-network"
     subnets_names = ["mock-subnet-01"]
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "plan-all"]
+  mock_outputs_allowed_terraform_commands = [
+    "validate",
+    "plan", 
+    "plan-all"
+    ]
 }
 
 locals {

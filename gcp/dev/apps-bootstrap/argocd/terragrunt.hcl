@@ -9,7 +9,16 @@ include "envcommon" {
 
 dependency "gke" {
   config_path = "../../gke/cluster"
-  skip_outputs = true
+
+  mock_outputs = {
+    endpoint        = "1.2.3.4"
+    ca_certificate  = base64encode("fake-cert")
+  }
+
+  mock_outputs_allowed_terraform_commands = [
+    "validate",
+    "plan"
+  ]
 }
 
 dependency "node_pools" {

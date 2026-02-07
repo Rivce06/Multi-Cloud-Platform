@@ -4,7 +4,16 @@ include "root" {
 
 dependency "gke" {
   config_path = "../../gke/cluster"
-  skip_outputs = true
+
+  mock_outputs = {
+    name     = "test-gke"
+    location = "us-central1"
+  }
+
+  mock_outputs_allowed_terraform_commands = [
+    "validate",
+    "plan"
+  ]
 }
 
 terraform {

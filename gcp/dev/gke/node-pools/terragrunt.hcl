@@ -10,7 +10,17 @@ include "envcommon_np" {
 
 dependency "gke_cluster" {
   config_path = "../cluster"
-  skip_outputs = true
+
+  mock_outputs = {
+    name       = "gke-test"
+    location   = "us-central1"
+    project_id = "test-project"
+  }
+
+  mock_outputs_allowed_terraform_commands = [
+  "validate",
+  "plan"
+]
 }
 
 locals {
