@@ -37,7 +37,7 @@ metadata:
   name: argocd-manager
   namespace: argocd
   annotations:
-    iam.gke.io/gcp-service-account: gke-workloads@${local.project_id}.iam.gserviceaccount.com
+    iam.gke.io/gcp-service-account: gke-workloads@${local.gcp_project_id}.iam.gserviceaccount.com
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
