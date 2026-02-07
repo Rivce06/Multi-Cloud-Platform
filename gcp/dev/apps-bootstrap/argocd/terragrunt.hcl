@@ -3,22 +3,17 @@ include "root" {
   expose = true
 }
 
-include "envcommon" {
-  path = "${get_terragrunt_dir()}/../../../../_envcommon/argocd.hcl"
+terraform {
+  source = "." 
 }
 
 dependency "gke" {
   config_path = "../../gke/cluster"
-
   mock_outputs = {
     endpoint       = "1.2.3.4"
     ca_certificate = base64encode("fake-cert")
   }
-
-  mock_outputs_allowed_terraform_commands = [
-    "validate",
-    "plan"
-  ]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 dependency "node_pools" {
@@ -29,9 +24,14 @@ dependency "node_pools" {
 generate "providers" {
   path      = "providers.tf"
   if_exists = "overwrite_terragrunt"
-
-  contents = <<EOF
+  contents  = <<EOF
 data "google_client_config" "default" {}
+
+provider "kubernetes" {
+  host                   = "https://${dependency.gke.outputs.endpoint}"
+  token                  = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode("${dependency.gke.outputs.ca_certificate}")
+}
 
 provider "helm" {
   kubernetes {
@@ -41,4 +41,8 @@ provider "helm" {
   }
 }
 EOF
+}
+
+inputs = {
+  chart_version = "7.7.0"
 }
