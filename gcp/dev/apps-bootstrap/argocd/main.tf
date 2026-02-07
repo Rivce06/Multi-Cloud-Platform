@@ -7,8 +7,6 @@ terraform {
   }
 }
 
-variable "chart_version" { default = "7.7.0" }
-
 resource "helm_release" "argocd" {
   name             = "argocd"
   repository       = "https://argoproj.github.io/argo-helm"
