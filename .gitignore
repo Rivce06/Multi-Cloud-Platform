@@ -1,0 +1,32 @@
+# --- Terragrunt/Terraform ---
+.terragrunt-cache/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# --- Infracost ---
+.infracost/
+infracost-usage.yml.local
+/tmp/infracost.json
+
+# --- Logs y Temporales ---
+*.log
+.secrets.baseline
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# --- IDEs ---
+.vscode/
+.idea/
+.DS_Store
+
+# --- Entorno Local ---
+.env
+.env.local
+.python-version
+__pycache__/
+.pre-commit-search/

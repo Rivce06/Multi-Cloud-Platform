@@ -17,13 +17,3 @@ resource "google_artifact_registry_repository" "repo" {
     }
   }
 }
-
-variable "project_id" {}
-variable "location" {}
-variable "repository_id" {}
-variable "format" { default = "DOCKER" }
-variable "description" { default = "" }
-variable "cleanup_policies" {
-  type = list(any)
-  default = []
-}
