@@ -4,7 +4,7 @@ include "root" {
 }
 
 dependency "gke" {
-  config_path = "../gke/cluster"
+  config_path  = "../gke/cluster"
   skip_outputs = true
 }
 

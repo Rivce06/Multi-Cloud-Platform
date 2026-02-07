@@ -22,7 +22,7 @@ inputs = {
   logging_service    = "none"
   monitoring_service = "none"
 
-  grant_registry_access = true
+  grant_registry_access         = true
   monitoring_enabled_components = []
 
   cluster_resource_labels = {

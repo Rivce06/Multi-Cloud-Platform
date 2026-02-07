@@ -4,7 +4,7 @@ terraform {
 
 inputs = {
   machine_type = try(local.env_vars.locals.gke_machine_type, "e2-standard-2")
-  spot = true
+  spot         = true
 
   disk_size_gb = 50
   disk_type    = "pd-balanced"

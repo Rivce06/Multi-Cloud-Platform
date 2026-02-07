@@ -18,9 +18,9 @@ dependency "gke_cluster" {
   }
 
   mock_outputs_allowed_terraform_commands = [
-  "validate",
-  "plan"
-]
+    "validate",
+    "plan"
+  ]
 }
 
 locals {
@@ -44,8 +44,8 @@ inputs = merge(
     spot         = true
 
     node_labels = {
-        env = local.env
-        managed_by = "terragrunt"
+      env        = local.env
+      managed_by = "terragrunt"
     }
   }
 )

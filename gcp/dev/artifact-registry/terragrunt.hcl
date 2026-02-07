@@ -25,8 +25,8 @@ inputs = {
       id     = "delete-old-images"
       action = "DELETE"
       condition = {
-        tag_state    = "ANY"
-        older_than   = "7d"
+        tag_state  = "ANY"
+        older_than = "7d"
       }
     }
   ]

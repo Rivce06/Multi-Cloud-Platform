@@ -1,20 +1,20 @@
 locals {
   account_vars = read_terragrunt_config(find_in_parent_folders("account.hcl"), { locals = {} })
-  env_vars      = read_terragrunt_config(find_in_parent_folders("env.hcl"), { locals = {} })
+  env_vars     = read_terragrunt_config(find_in_parent_folders("env.hcl"), { locals = {} })
 
   cloud = contains(split("/", get_terragrunt_dir()), "aws") ? "aws" : (
     contains(split("/", get_terragrunt_dir()), "gcp") ? "gcp" : "unknown"
   )
 
-  project_name   = get_env("PROJECT_NAME", try(local.account_vars.locals.project_name, "Multi-Cloud-Platform"))
-  env            = get_env("ENVIRONMENT", try(local.env_vars.locals.environment, "dev"))
-  aws_region     = get_env("AWS_REGION", try(local.account_vars.locals.aws_region, "us-east-1"))
-  gcp_region     = get_env("GCP_REGION", try(local.env_vars.locals.gcp_region, "us-central1"))
+  project_name = get_env("PROJECT_NAME", try(local.account_vars.locals.project_name, "Multi-Cloud-Platform"))
+  env          = get_env("ENVIRONMENT", try(local.env_vars.locals.environment, "dev"))
+  aws_region   = get_env("AWS_REGION", try(local.account_vars.locals.aws_region, "us-east-1"))
+  gcp_region   = get_env("GCP_REGION", try(local.env_vars.locals.gcp_region, "us-central1"))
   gcp_project_id = coalesce(
-  get_env("GCP_PROJECT_ID", ""),
-  try(local.account_vars.locals.gcp_project_id, ""),
-  "test-project"
-)
+    get_env("GCP_PROJECT_ID", ""),
+    try(local.account_vars.locals.gcp_project_id, ""),
+    "test-project"
+  )
 }
 
 # -------------------
@@ -35,12 +35,12 @@ provider "aws" {
   }
 }
 
-%{ if local.cloud == "gcp" }
+%{if local.cloud == "gcp"}
 provider "google" {
   project = "${local.gcp_project_id}"
   region  = "${local.gcp_region}"
 }
-%{ endif }
+%{endif}
 EOF
 }
 

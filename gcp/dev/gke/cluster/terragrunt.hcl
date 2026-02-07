@@ -19,7 +19,7 @@ dependency "vpc" {
     "validate",
     "plan",
     "plan-all"
-    ]
+  ]
 }
 
 locals {
