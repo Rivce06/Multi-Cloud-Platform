@@ -10,7 +10,11 @@ locals {
   env            = get_env("ENVIRONMENT", try(local.env_vars.locals.environment, "dev"))
   aws_region     = get_env("AWS_REGION", try(local.account_vars.locals.aws_region, "us-east-1"))
   gcp_region     = get_env("GCP_REGION", try(local.env_vars.locals.gcp_region, "us-central1"))
-  gcp_project_id = get_env("GCP_PROJECT_ID", try(local.account_vars.locals.gcp_project_id, "my-project"))
+  gcp_project_id = coalesce(
+  get_env("GCP_PROJECT_ID", null),
+  try(local.account_vars.locals.gcp_project_id, null),
+  "test-project"
+)
 }
 
 # -------------------

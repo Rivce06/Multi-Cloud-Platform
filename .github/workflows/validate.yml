@@ -82,7 +82,10 @@ jobs:
       # --- 4. TERRAGRUNT VALIDATION ---
       - name: Terragrunt Validate
         run: |
-          terragrunt run-all validate --terragrunt-non-interactive --terragrunt-parallelism 1
+          terragrunt run-all validate \
+           --terragrunt-non-interactive \
+           --terragrunt-parallelism 1 \
+           --terragrunt-exclude-dir gcp/dev/artifact-registry
 
       # --- 5. INFRACOST ---
       - name: Setup Infracost
@@ -92,7 +95,6 @@ jobs:
 
       - name: Generate Infracost Breakdown
         run: |
-          # Si no tienes el archivo infracost-usage.yml, borra la línea "--usage-file"
           infracost breakdown --path . \
                             --format json \
                             --usage-file infracost-usage.yml \
