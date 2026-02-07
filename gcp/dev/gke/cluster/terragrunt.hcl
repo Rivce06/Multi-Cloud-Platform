@@ -42,6 +42,9 @@ inputs = {
   ip_range_pods     = "pods"
   ip_range_services = "services"
 
+  remove_default_node_pool = true
+  initial_node_count       = 1
+
   cluster_resource_labels = merge(
     include.envcommon_gke.inputs.cluster_resource_labels,
     {
