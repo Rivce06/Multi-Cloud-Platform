@@ -1,5 +1,5 @@
 terraform {
-  source = "tfr:///hashicorp/helm//modules/release?version=3.0.1"
+  source = "tfr:///terraform-module/release/helm?version=2.9.1"
 }
 
 inputs = {
