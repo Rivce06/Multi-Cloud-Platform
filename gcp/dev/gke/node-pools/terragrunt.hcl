@@ -38,11 +38,11 @@ inputs = merge(
     cluster_name = dependency.gke_cluster.outputs.name
     location     = dependency.gke_cluster.outputs.location
     name         = "${include.root.inputs.project_name}-${local.env}-np-01"
-    
+
     node_count   = local.node_count
     machine_type = local.machine_type
-    spot         = true  
-    
+    spot         = true
+
     node_labels = {
         env = local.env
         managed_by = "terragrunt"

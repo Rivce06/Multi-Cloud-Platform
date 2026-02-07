@@ -24,7 +24,7 @@ inputs = {
 
   grant_registry_access = true
   monitoring_enabled_components = []
- 
+
   cluster_resource_labels = {
     managed_by = "terragrunt"
   }

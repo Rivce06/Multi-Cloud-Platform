@@ -1,5 +1,5 @@
 terraform {
-  source = "tfr:///terraform-google-modules/kubernetes-engine/google//modules/gke-node-pool?version=43.0.0"        
+  source = "tfr:///terraform-google-modules/kubernetes-engine/google//modules/gke-node-pool?version=43.0.0"
 }
 
 inputs = {

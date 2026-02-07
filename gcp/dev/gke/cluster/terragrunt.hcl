@@ -17,7 +17,7 @@ dependency "vpc" {
   }
   mock_outputs_allowed_terraform_commands = [
     "validate",
-    "plan", 
+    "plan",
     "plan-all"
     ]
 }
