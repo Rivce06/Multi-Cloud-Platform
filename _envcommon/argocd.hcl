@@ -1,5 +1,5 @@
 terraform {
-  source = "tfr:///terraform-module/release/helm?version=3.1.1"
+  source = "tfr:///hashicorp/helm//modules/release?version=3.0.1"
 }
 
 inputs = {
@@ -11,11 +11,11 @@ inputs = {
 
   values = [
   <<-EOF
-  server:
-    service:
-      type: ClusterIP
-    extraArgs:
-      - --insecure
-  EOF
-]
+server:
+  service:
+    type: ClusterIP
+  extraArgs:
+    - --insecure
+EOF
+  ]
 }
