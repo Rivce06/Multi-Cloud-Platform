@@ -12,10 +12,10 @@ This repository is a production-grade multi-cloud platform engineering lab built
 
 #### Tools: `AWS`,`GCP`, `Terraform`, `GitHub Actions`, `Docker`, `Kubernetes`, `Prometeus`, `Grafana`, `ArgoCD`.
 
-<div align="center"> 
+<div align="center">
 
   ![My Skills](https://go-skill-icons.vercel.app/api/icons?i=aws,gcp,kubernetes,terraform,argocd,prometheus,grafana,git,fastapi,python,helm)
-  
+
 </div> <br>
 
 
@@ -102,7 +102,7 @@ Multi-Cloud-Platform/
 
 ---
 
-## 💸 FinOps Notes 
+## 💸 FinOps Notes
 
 - State in AWS stays within typical free-tier limits (S3/DynamoDB). Artifact Registry kept small.
 - Node sizing: `e2-standard-4` is recommended to avoid OOMs when running Vault/Prometheus/ArgoCD alongside agent workloads. Using the free $300 credit on GCP justifies using stronger node classes to keep the control plane stable.
