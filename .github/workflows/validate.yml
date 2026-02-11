@@ -27,6 +27,7 @@ jobs:
       TERRAGRUNT_DOWNLOAD_SOURCE_RETRY_ATTEMPTS: 5
       TERRAGRUNT_DOWNLOAD_SOURCE_RETRY_SLEEP_MS: 5000
       TF_REGISTRY_CLIENT_TIMEOUT: 30
+      TERRAGRUNT_NON_INTERACTIVE: true
 
     steps:
       - name: Checkout code
@@ -75,6 +76,20 @@ jobs:
           tflint --init
           tflint -f compact
 
+      # --- 4. TERRAGRUNT PLAN & JSON CONVERSION ---
+      - name: Terragrunt Plan and JSON Conversion
+        run: |
+          echo "Generating plans for all modules..."
+          terragrunt run-all plan -out=tp.plan --terragrunt-non-interactive
+
+          echo "Converting plans to JSON for deep analysis..."
+          find . -name "tp.plan" | while read planfile; do
+            dir=$(dirname "$planfile")
+            echo "Processing JSON in $dir"
+            (cd "$dir" && terraform show -json tp.plan > plan.json)
+          done
+
+      # --- 5. SECURITY SCAN (TRIVY) ---
       - name: Run Trivy Security Scan
         uses: aquasecurity/trivy-action@master
         with:
@@ -83,16 +98,10 @@ jobs:
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
+          scan-ref: '.'
           skip-dirs: '**/.terragrunt-cache/**'
 
-      # --- 4. TERRAGRUNT VALIDATION ---
-      - name: Terragrunt Validate
-        run: |
-          terragrunt run-all validate \
-            --terragrunt-non-interactive \
-            --terragrunt-parallelism 4
-
-      # --- 5. INFRACOST ---
+      # --- 6. COST ANALYSIS (INFRACOST) ---
       - name: Setup Infracost
         uses: infracost/actions/setup@v3
         with:
@@ -108,7 +117,7 @@ jobs:
       - name: Show Infracost breakdown
         run: infracost output --path /tmp/infracost.json --format table
 
-      # --- 6. POST COMMENT TO PR ---
+      # --- 7. REPORTING ---
       - name: Post Infracost comment
         if: github.event_name == 'pull_request'
         run: |
