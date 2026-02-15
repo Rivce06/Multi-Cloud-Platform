@@ -30,3 +30,4 @@ override.tf.json
 .python-version
 __pycache__/
 .pre-commit-search/
+.tmp/

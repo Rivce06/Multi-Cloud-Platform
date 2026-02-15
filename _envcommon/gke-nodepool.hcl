@@ -10,13 +10,16 @@ inputs = {
   disk_type    = "pd-balanced"
   image_type   = "COS_CONTAINERD"
 
-  auto_repair  = true
-  auto_upgrade = true
+  enable_shielded_nodes = true
+  auto_repair           = true
+  auto_upgrade          = true
 
   node_metadata = "GKE_METADATA_SERVER"
 
   oauth_scopes = [
-    "https://www.googleapis.com/auth/cloud-platform"
+    "https://www.googleapis.com/auth/logging.write",
+    "https://www.googleapis.com/auth/monitoring",
+    "https://www.googleapis.com/auth/devstorage.read_only" # Solo para bajar imágenes
   ]
 
   node_labels = {

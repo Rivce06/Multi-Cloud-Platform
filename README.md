@@ -1,13 +1,13 @@
 # 🧰 Multi-Cloud Platform Engineering Lab
 
-This repository is a production-grade multi-cloud platform engineering lab built with Terraform and Terragrunt and App-of-Apps. It demonstrates Infrastructure-as-Code (DRY Terragrunt), GitOps bootstrapping with ArgoCD, zero-trust keyless authentication (OIDC / Workload Identity), observability, and a sample Agentic Analyzer workload running on GKE with Vertex AI.
+This repository is a production-grade multi-cloud platform engineering lab built with Terraform and Terragrunt and App-of-Apps. It demonstrates Infrastructure-as-Code (DRY Terragrunt), GitOps bootstrapping with ArgoCD, zero-trust keyless authentication (OIDC / Workload Identity), observability, and a sample SRE Agentic Analyzer workload running on GKE with Vertex AI.
 
 ---
 
 ## 🔎 Project Overview
 
 - Goal: Provide a repeatable, DRY infrastructure layout that uses AWS as the state/management plane and GCP as the data plane (GKE / Vertex AI).
-- Scope: Remote state (S3 + DynamoDB locks), VPC, GKE clusters, node pools, Artifact Registry, IAM/Workload Identity, and bootstrap apps (ArgoCD, Vault, Prometheus, Kyverno).
+- Scope: Remote state (S3 + lockfile), VPC, GKE clusters, node pools, Artifact Registry, IAM/Workload Identity, and bootstrap apps (ArgoCD, Vault, Prometheus, Kyverno).
 - Design pillars: Security (OIDC / Workload Identity), Maintainability (Terragrunt hierarchy and `_envcommon`), Observability (Prometheus & Grafana), and Cost-awareness (Free-tier / FinOps considerations).
 
 #### Tools: `AWS`,`GCP`, `Terraform`, `GitHub Actions`, `Docker`, `Kubernetes`, `Prometeus`, `Grafana`, `ArgoCD`.
@@ -29,7 +29,6 @@ Multi-Cloud-Platform/
 ├── README.md
 ├── _envcommon
 │   ├── argocd.hcl
-│   ├── cloud-run.hcl
 │   ├── gke-nodepool.hcl
 │   ├── gke.hcl
 │   └── network.hcl
@@ -63,6 +62,8 @@ Multi-Cloud-Platform/
 │       │       └── terragrunt.hcl
 │       ├── iam-roles
 │       │   └── terragrunt.hcl
+│       ├── sre-agent-identity
+│       │   └── terragrunt.hcl
 │       └── vpc
 │           └── terragrunt.hcl
 └── root.hcl
@@ -76,7 +77,7 @@ Multi-Cloud-Platform/
 |---|---|
 | IaC | Terraform + Terragrunt |
 | CI/CD | GitHub Actions (OIDC) / optional Atlantis |
-| Cloud | AWS (S3, DynamoDB) for state; GCP (GKE, Artifact Registry, Vertex AI) for compute |
+| Cloud | AWS (S3 lockfile) for state; GCP (GKE, Artifact Registry, Vertex AI) for compute |
 | GitOps | ArgoCD (App-of-Apps) |
 | Secrets | HashiCorp Vault (sidecar injection) |
 | Policy | Kyverno |
@@ -87,8 +88,8 @@ Multi-Cloud-Platform/
 
 ## 🧠 System Architecture
 
-- Control plane: AWS S3 for Terraform state + DynamoDB for locks. GitHub Actions uses OIDC to assume roles — no long-lived keys in GitHub.
-- Data plane: GKE clusters in GCP where workloads run (Agentic Analyzer). Workload Identity binds Kubernetes service accounts to GCP IAM roles.
+- Control plane: AWS S3 for Terraform state + lockfile for locks, terragrunt and Terraform 1.10+ support S3 Native Locking. Adding DynamoDB in 2026 introduces an unnecessary circular IAM dependency when the S3 backend already guarantees atomicity through conditional writes. GitHub Actions uses OIDC to assume roles — no long-lived keys in GitHub.
+- Data plane: GKE clusters in GCP where workloads run (sre agents). Workload Identity binds Kubernetes service accounts to GCP IAM roles.
 - Bootstrap flow: Terragrunt provisions network → cluster → node-pools. After cluster is ready, ArgoCD (installed via Terraform Helm provider) syncs k8s-configs and installs system apps: Vault, Kyverno, Prometheus, etc.
 - Dependencies: Terragrunt `dependency` blocks wire outputs (e.g., VPC → cluster → apps).
 
@@ -100,11 +101,13 @@ Multi-Cloud-Platform/
 - Vault sidecar: Secrets are injected at runtime and mounted under `/vault/secrets` in pods.
 - Networking: To reduce costs in this lab we avoid Cloud NAT and assign public IPs to nodes but strictly restrict ingress via VPC firewall rules (`AUTHORIZED_NETWORK`). This is a conscious trade-off for Free-Tier labs; production should use NAT where appropriate.
 
+- Architecture Decision: Public nodes limited by firewalls (Master Authorized Networks) were chosen to optimize lab costs by avoiding the deployment of Cloud NAT. In a real production environment, this would be changed to 'Private Nodes' and accessed via VPN or Identity-Aware Proxy (IAP).
+
 ---
 
 ## 💸 FinOps Notes
 
-- State in AWS stays within typical free-tier limits (S3/DynamoDB). Artifact Registry kept small.
+- State in AWS stays within typical free-tier limits (S3/lockfile). Artifact Registry kept small.
 - Node sizing: `e2-standard-4` is recommended to avoid OOMs when running Vault/Prometheus/ArgoCD alongside agent workloads. Using the free $300 credit on GCP justifies using stronger node classes to keep the control plane stable.
 - Cost-saving tradeoffs explained in the Security section (NAT vs public IPs + firewall).
 
@@ -179,7 +182,7 @@ Notes:
 
 | Area | Resources |
 |---|---|
-| State & locking | S3 bucket (terraform state), DynamoDB table (locks) [AWS] |
+| State & locking | S3 bucket (terraform state), lockfile enable (locks) [AWS] |
 | Networking | VPC, subnets, firewall rules (GCP) |
 | Compute | GKE clusters, node pools (GCP) |
 | Registry | Artifact Registry (GCP) |

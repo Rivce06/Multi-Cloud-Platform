@@ -7,12 +7,15 @@ locals {
 }
 
 inputs = {
+  release_channel          = "REGULAR"
   deletion_protection      = false
   remove_default_node_pool = true
   initial_node_count       = 1
 
   enable_private_endpoint = false
   enable_private_nodes    = false
+  network_policy          = true
+  datapath_provider       = "ADVANCED_DATAPATH"
 
   http_load_balancing        = false
   horizontal_pod_autoscaling = true
