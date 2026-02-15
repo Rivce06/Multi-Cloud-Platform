@@ -27,5 +27,5 @@ inputs = {
 }
 
 output "gcp_service_account_email" {
-  value = dependency.gke.outputs.gcp_service_account_email
+  value = module.workload_identity.gcp_service_account_email
 }
