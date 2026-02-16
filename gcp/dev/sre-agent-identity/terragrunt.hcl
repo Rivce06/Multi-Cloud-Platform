@@ -22,7 +22,8 @@ inputs = {
   roles = [
     "roles/logging.logWriter",
     "roles/monitoring.metricWriter",
-    "roles/artifactregistry.reader"
+    "roles/artifactregistry.reader",
+    "roles/aiplatform.user"
   ]
 }
 
