@@ -1,16 +1,26 @@
 # 🧰 Multi-Cloud Platform Engineering Lab
 
-This repository is a production-grade multi-cloud platform engineering lab built with Terraform and Terragrunt and App-of-Apps. It demonstrates Infrastructure-as-Code (DRY Terragrunt), GitOps bootstrapping with ArgoCD, zero-trust keyless authentication (OIDC / Workload Identity), observability, and a sample SRE Agentic Analyzer workload running on GKE with Vertex AI.
+This repository is a production-grade multi-cloud platform engineering lab built with Terraform, Terragrunt, and the App-of-Apps pattern. It demonstrates Infrastructure-as-Code (DRY Terragrunt), GitOps bootstrapping with ArgoCD, zero-trust keyless authentication (OIDC / Workload Identity), observability, and a sample SRE Agentic Analyzer workload running on GKE with Vertex AI.
 
 ---
 
 ## 🔎 Project Overview
 
-- Goal: Provide a repeatable, DRY infrastructure layout that uses AWS as the state/management plane and GCP as the data plane (GKE / Vertex AI).
-- Scope: Remote state (S3 + lockfile), VPC, GKE clusters, node pools, Artifact Registry, IAM/Workload Identity, and bootstrap apps (ArgoCD, Vault, Prometheus, Kyverno).
-- Design pillars: Security (OIDC / Workload Identity), Maintainability (Terragrunt hierarchy and `_envcommon`), Observability (Prometheus & Grafana), and Cost-awareness (Free-tier / FinOps considerations).
+**Goal:** Provide a repeatable, DRY multi-cloud platform where AWS acts as the control/state plane and GCP provides the runtime data plane (GKE & Vertex AI).
 
-#### Tools: `AWS`,`GCP`, `Terraform`, `GitHub Actions`, `Docker`, `Kubernetes`, `Prometeus`, `Grafana`, `ArgoCD`.
+**Scope:** Remote state, networking, GKE clusters, node pools, Artifact Registry, IAM & Workload Identity, and GitOps bootstrap (ArgoCD + platform services).
+
+**Design pillars:**
+
+-   **Security:** Keyless authentication (OIDC & Workload Identity), Vault secret injection.
+    
+-   **Maintainability:** Terragrunt hierarchy & `_envcommon` DRY patterns.
+    
+-   **Observability:** Prometheus & Grafana with metrics-first workloads.
+    
+-   **Cost Awareness:** Free-tier friendly architecture & FinOps trade-offs.
+
+#### Tools: `AWS`,`GCP`, `Terraform`, `GitHub Actions`, `Docker`, `Kubernetes`, `Prometheus`, `Grafana`, `ArgoCD`.
 
 <div align="center">
 
@@ -101,7 +111,28 @@ Multi-Cloud-Platform/
 - Vault sidecar: Secrets are injected at runtime and mounted under `/vault/secrets` in pods.
 - Networking: To reduce costs in this lab we avoid Cloud NAT and assign public IPs to nodes but strictly restrict ingress via VPC firewall rules (`AUTHORIZED_NETWORK`). This is a conscious trade-off for Free-Tier labs; production should use NAT where appropriate.
 
-- Architecture Decision: Public nodes limited by firewalls (Master Authorized Networks) were chosen to optimize lab costs by avoiding the deployment of Cloud NAT. In a real production environment, this would be changed to 'Private Nodes' and accessed via VPN or Identity-Aware Proxy (IAP).
+### Network Policies (Internal Zero-Trust)
+
+GKE Network Policies are enabled using the advanced datapath (Cilium/eBPF):
+
+`network_policy = true  datapath_provider = "ADVANCED_DATAPATH"`
+
+## 🧱 Architecture Decision (Trade-off)
+
+### Public Nodes vs Cloud NAT (Lab Trade-off)
+
+To optimize costs for a free-tier lab, nodes are assigned public IPs while ingress is strictly restricted using firewall rules and Master Authorized Networks.
+
+In production, this design should be replaced with:
+
+-   Private nodes
+    
+-   Cloud NAT
+    
+-   Access via VPN or Identity-Aware Proxy (IAP)
+    
+
+This trade-off prioritizes affordability while maintaining controlled access.
 
 ---
 
@@ -110,8 +141,28 @@ Multi-Cloud-Platform/
 - State in AWS stays within typical free-tier limits (S3/lockfile). Artifact Registry kept small.
 - Node sizing: `e2-standard-4` is recommended to avoid OOMs when running Vault/Prometheus/ArgoCD alongside agent workloads. Using the free $300 credit on GCP justifies using stronger node classes to keep the control plane stable.
 - Cost-saving tradeoffs explained in the Security section (NAT vs public IPs + firewall).
+- Network Policies and Cilium dataplane provide security without additional infrastructure cost.
 
 ---
+
+## 🤖 GitOps Bot Authentication (Cross-Repo Automation)
+
+To allow the infrastructure pipeline to create Pull Requests in the GitOps repository, a GitHub bot token is used.
+
+### Steps
+
+1.  Create a **Personal Access Token (classic)**  
+    Permissions: `repo`  
+    Suggested name: `PLATFORM_BOT_TOKEN`
+    
+2.  Store it in the infrastructure repository:
+    
+
+Settings → Secrets → Actions
+
+`PAT_GITHUB = <token>` 
+
+This enables automated PR creation for image updates and configuration changes.
 
 ## 🚀 Getting Started — Prerequisites
 
@@ -191,11 +242,58 @@ Notes:
 
 ---
 
-## ⚙️ Agentic Analyzer (example workload)
+## ⚙️ SRE Agent (Platform Integration Workload)
+
+The current SRE agent is a platform-integrated microservice designed to evolve into an AI-assisted SRE automation component.
 
 - A Python-based Agentic-DevOps Analyzer runs on GKE and uses Vertex AI for analysis.
 - It authenticates via Workload Identity (no static keys) and receives secrets via Vault sidecar.
 - Deployed via ArgoCD from the `k8s-configs` repo (app-of-apps pattern).
+### Current Capabilities
+
+-   Health endpoint for Kubernetes probes
+    
+-   Prometheus metrics exposure
+    
+-   Secure configuration via Vault & Workload Identity
+    
+-   Integration point for observability and automation pipelines
+    
+
+👉 It provides the operational foundation for future AIOps capabilities.
+
+### Not Implemented Yet
+
+-   Automatic remediation
+    
+-   Incident analysis
+    
+-   GitOps auto-PR generation
+    
+-   Self-healing actions
+    
+-   AI-driven recommendations
+    
+
+### Evolution Roadmap
+
+**Level 1 — Observability Agent (current)**  
+Health, metrics, secure config.
+
+**Level 2 — Incident Analyzer**  
+Alertmanager integration & incident summaries.
+
+**Level 3 — Recommendation Engine**  
+Suggest scaling & remediation actions.
+
+**Level 4 — Self-Healing Automation**  
+Safe Kubernetes API remediations.
+
+**Level 5 — GitOps Auto-Remediation**  
+Create PRs for configuration fixes.
+
+**Level 6 — AI-Powered SRE**  
+Vertex AI for anomaly detection & incident analysis.
 
 ---
 
@@ -206,7 +304,7 @@ Notes:
 - `_envcommon/argocd.hcl` — common ArgoCD chart inputs.
 - `gcp/dev/gke/cluster/terragrunt.hcl` — cluster stack with `dependency` on VPC.
 - `gcp/dev/apps-bootstrap/argocd/terragrunt.hcl` — ArgoCD Helm install referencing cluster outputs.
-- `aws/global/tf-state/` — S3/DynamoDB backend details.
+`- aws/global/tf-state/ — S3 backend & native locking configuration.`
 
 ---
 
@@ -219,6 +317,7 @@ Notes:
 
 ## 🤖 Automated Deployment Workflow (CI/CD)
 The entire infrastructure and application lifecycle are managed via GitHub Actions. No manual terragrunt apply is required.
+No long-lived cloud credentials are stored in GitHub.
 
 1. **The Infrastructure Multi-Cloud Platform Pipeline**
 When you push code or open a PR in the main-infra-repo, the following flow triggers:
@@ -260,7 +359,21 @@ This repo has its own independent lifecycle:
 **Deploy:** Once that PR is merged, ArgoCD detects the new tag and performs a rolling update of the Agent Pod..
 
 ---
+## 🧠 Key Engineering Decisions
 
+-   DRY multi-environment architecture with Terragrunt
+    
+-   Keyless authentication via OIDC & Workload Identity
+    
+-   Native S3 locking instead of DynamoDB for reduced IAM coupling
+    
+-   Public node trade-off for free-tier affordability
+    
+-   Zero-trust internal networking via Network Policies (Cilium)
+    
+-   GitOps-first platform bootstrapping
+    
+-   Observability-first workload design
 
 
 ## 🤝 Contributing
