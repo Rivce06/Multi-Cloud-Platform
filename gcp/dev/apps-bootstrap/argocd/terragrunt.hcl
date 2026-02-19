@@ -18,11 +18,11 @@ dependency "gke" {
 
 dependency "node_pools" {
   config_path  = "../../gke/node-pools"
-  skip_outputs = true
+  skip_outputs = false
 }
 
 generate "providers" {
-  path      = "providers.tf"
+  path      = "providers_override.tf"
   if_exists = "overwrite_terragrunt"
   contents  = <<EOF
 data "google_client_config" "default" {}
@@ -45,4 +45,5 @@ EOF
 
 inputs = {
   chart_version = "7.7.0"
+  argocd_name   = "argocd"
 }

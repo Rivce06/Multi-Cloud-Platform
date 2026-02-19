@@ -7,6 +7,11 @@ locals {
 }
 
 inputs = {
+  network           = "${local.env}-vpc"
+  subnetwork        = "${local.env}-subnet-gke"
+  ip_range_pods     = "pods"
+  ip_range_services = "services"
+
   release_channel          = "REGULAR"
   deletion_protection      = false
   remove_default_node_pool = true
@@ -21,6 +26,8 @@ inputs = {
   horizontal_pod_autoscaling = true
   workload_identity_enabled  = true
   identity_namespace         = "${local.gcp_project_id}.svc.id.goog"
+
+  enable_identity_service = true
 
   logging_service    = "none"
   monitoring_service = "none"

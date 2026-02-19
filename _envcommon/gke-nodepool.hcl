@@ -17,9 +17,7 @@ inputs = {
   node_metadata = "GKE_METADATA_SERVER"
 
   oauth_scopes = [
-    "https://www.googleapis.com/auth/logging.write",
-    "https://www.googleapis.com/auth/monitoring",
-    "https://www.googleapis.com/auth/devstorage.read_only" # Solo para bajar imágenes
+    "https://www.googleapis.com"
   ]
 
   node_labels = {

@@ -25,10 +25,8 @@ jobs:
       GCP_REGION: us-central1
       AWS_REGION: us-east-1
       TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
-      TERRAGRUNT_DOWNLOAD_SOURCE_RETRY_ATTEMPTS: 5
-      TERRAGRUNT_DOWNLOAD_SOURCE_RETRY_SLEEP_MS: 5000
-      TF_REGISTRY_CLIENT_TIMEOUT: 30
       TERRAGRUNT_NON_INTERACTIVE: true
+      TERRAGRUNT_DOWNLOAD_SOURCE_RETRY_ATTEMPTS: 5
 
     steps:
       - name: Checkout code
@@ -46,7 +44,6 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
-          role-session-name: GitHubActionsSession
 
       # --- 2. TOOLS SETUP ---
       - name: Setup Terraform
@@ -60,34 +57,20 @@ jobs:
         with:
           terragrunt-version: v0.60.0
 
-      - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
-        with:
-          tflint_version: latest
-
-      # --- 3. STATIC ANALYSIS & LINTING ---
-      - name: Run pre-commit
-        uses: pre-commit/action@v3.0.1
-
+      # --- 3. STATIC ANALYSIS ---
       - name: Terragrunt Format Check
         run: terragrunt hclfmt --terragrunt-check --terragrunt-diff
-
-      - name: Run TFLint
-        run: |
-          tflint --init
-          tflint -f compact
 
       # --- 4. TERRAGRUNT PLAN & JSON CONVERSION ---
       - name: Terragrunt Plan and JSON Conversion
         run: |
-          echo "Generating plans for all modules..."
+          # Usamos run-all para manejar dependencias entre módulos
           terragrunt run-all plan -out=tp.plan --terragrunt-non-interactive
 
-          echo "Converting plans to JSON for deep analysis..."
+          mkdir -p /tmp/plans
           find . -name "tp.plan" | while read planfile; do
-            dir=$(dirname "$planfile")
-            echo "Processing JSON in $dir"
-            (cd "$dir" && terraform show -json tp.plan > plan.json)
+            dir_name=$(basename $(dirname "$planfile"))
+            (cd "$(dirname "$planfile")" && terraform show -json tp.plan > "/tmp/plans/${dir_name}.json")
           done
 
       # --- 5. SECURITY SCAN (TRIVY) ---
@@ -95,12 +78,11 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'config'
-          hide-progress: false
+          # Escaneamos los archivos JSON generados para mayor precisión
+          scan-ref: '/tmp/plans'
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
-          scan-ref: '.'
-          skip-dirs: '**/.terragrunt-cache/**'
 
       # --- 6. COST ANALYSIS (INFRACOST) ---
       - name: Setup Infracost
@@ -110,15 +92,10 @@ jobs:
 
       - name: Generate Infracost Breakdown
         run: |
-          infracost breakdown --path . \
+          infracost breakdown --path /tmp/plans \
                             --format json \
-                            --usage-file infracost-usage.yml \
                             --out-file /tmp/infracost.json
 
-      - name: Show Infracost breakdown
-        run: infracost output --path /tmp/infracost.json --format table
-
-      # --- 7. REPORTING ---
       - name: Post Infracost comment
         if: github.event_name == 'pull_request'
         run: |

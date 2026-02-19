@@ -54,11 +54,13 @@ remote_state {
     if_exists = "overwrite_terragrunt"
   }
   config = {
-    bucket       = lower("terraform-state-${local.project_name}-${local.env}")
-    key          = "${path_relative_to_include()}/terraform.tfstate"
-    region       = local.aws_region
-    encrypt      = true
-    use_lockfile = true
+    bucket                = lower("terraform-state-${local.project_name}-${local.env}")
+    key                   = "${path_relative_to_include()}/terraform.tfstate"
+    region                = local.aws_region
+    encrypt               = true
+    use_lockfile          = true
+    s3_use_path_style     = false
+    access_logging_bucket = "mi-bucket-de-auditoria"
   }
 }
 

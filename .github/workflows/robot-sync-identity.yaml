@@ -15,9 +15,7 @@ env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: us-central1
   AWS_REGION: us-east-1
-  TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
   ENVIRONMENT: dev
-
   CONFIG_REPO: "Rivce06/k8s-configs"
   CONFIG_FILE_PATH: "platform/sre-agent/overlays/dev/service_account_patch.yaml"
 
@@ -28,7 +26,7 @@ jobs:
       - name: Checkout Infra Code
         uses: actions/checkout@v4
 
-      # --- 1. AUTHENTICATION OIDC (Multi-Cloud) ---
+      # --- 1. AUTHENTICATION OIDC ---
       - name: Authenticate to Google Cloud
         id: auth
         uses: google-github-actions/auth@v2
@@ -43,29 +41,34 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       # --- 2. EXTRACT DATA FROM TERRAGRUNT ---
-      - name: Setup Terragrunt
-        uses: autero1/action-terragrunt@v1.1.0
+      - name: Setup Terraform & Terragrunt
+        uses: hashicorp/setup-terraform@v3
         with:
-          terragrunt_version: latest
+          terraform_version: 1.10.0
+          terraform_wrapper: false
+
+      - name: Setup Terragrunt
+        uses: autero1/action-terragrunt@v3
+        with:
+          terragrunt-version: v0.60.0
 
       - name: Get Service Account Email
         id: get-email
         working-directory: gcp/dev/sre-agent-identity
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
         run: |
-          terragrunt init
+          terragrunt init -backend-config="region=${{ env.AWS_REGION }}"
           SA_EMAIL=$(terragrunt output -raw gcp_service_account_email)
           echo "SA_EMAIL=$SA_EMAIL" >> $GITHUB_OUTPUT
           echo "✅ Identity detected: $SA_EMAIL"
 
-      # --- 3. GITHUB APP AUTH (Zero-Trust) ---
+      # --- 3. GITHUB APP AUTH ---
       - name: Generate GitHub App Token
         id: app-token
         uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.GH_APP_ID }}
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          owner: "Rivce06"
 
       # --- 4. GITOPS UPDATE & PR ---
       - name: Checkout Config Repo
@@ -79,8 +82,6 @@ jobs:
         working-directory: k8s-configs
         run: |
           sed -i "s|value: \".*\"|value: \"${{ steps.get-email.outputs.SA_EMAIL }}\"|" ${{ env.CONFIG_FILE_PATH }}
-          echo "DEBUG: Contenido final del patch:"
-          cat ${{ env.CONFIG_FILE_PATH }}
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
@@ -88,18 +89,13 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           path: k8s-configs
           commit-message: "chore(identity): update gcp service account to ${{ steps.get-email.outputs.SA_EMAIL }}"
-          committer: GitHub App Bot <bot@platform.engineering>
-          author: GitHub App Bot <bot@platform.engineering>
-          branch: robot/identity-update-${{ github.run_id }}
-          delete-branch: true
+          committer: "Platform Robot <bot@platform.engineering>"
+          author: "Platform Robot <bot@platform.engineering>"
+          branch: "robot/identity-update"
+          push-sha: true
           title: "🤖 [Identity Sync] Update Workload Identity for SRE Agent"
           body: |
             ## 🤖 Automated Identity Update
-
-            This PR updates the Workload Identity annotation in the Kubernetes configurations.
-
-            - **Source:** Infrastructure State (Terragrunt)
             - **New Identity:** `${{ steps.get-email.outputs.SA_EMAIL }}`
             - **Environment:** `${{ env.ENVIRONMENT }}`
-
-            [View Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            - **Action:** Syncing GSA from Infra Repo to GitOps Overlays.
