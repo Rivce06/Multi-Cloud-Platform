@@ -14,7 +14,7 @@ terraform {
 inputs = {
   project_id  = include.root.inputs.gcp_project_id
   name        = "sre-agent"
-  namespace   = "monitoring"
+  namespace   = "sre-workloads"
   k8s_sa_name = "sre-agent-sa"
 
   use_existing_k8s_sa = true
