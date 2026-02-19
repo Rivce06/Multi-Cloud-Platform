@@ -17,7 +17,7 @@ env:
   AWS_REGION: us-east-1
   TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
   ENVIRONMENT: dev
-  
+
   CONFIG_REPO: "Rivce06/k8s-configs"
   CONFIG_FILE_PATH: "platform/sre-agent/overlays/dev/service_account_patch.yaml"
 
@@ -95,11 +95,11 @@ jobs:
           title: "🤖 [Identity Sync] Update Workload Identity for SRE Agent"
           body: |
             ## 🤖 Automated Identity Update
-            
+
             This PR updates the Workload Identity annotation in the Kubernetes configurations.
-            
+
             - **Source:** Infrastructure State (Terragrunt)
             - **New Identity:** `${{ steps.get-email.outputs.SA_EMAIL }}`
             - **Environment:** `${{ env.ENVIRONMENT }}`
-            
+
             [View Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})

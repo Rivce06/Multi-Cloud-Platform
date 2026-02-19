@@ -13,11 +13,11 @@ This repository is a production-grade multi-cloud platform engineering lab built
 **Design pillars:**
 
 -   **Security:** Keyless authentication (OIDC & Workload Identity), Vault secret injection.
-    
+
 -   **Maintainability:** Terragrunt hierarchy & `_envcommon` DRY patterns.
-    
+
 -   **Observability:** Prometheus & Grafana with metrics-first workloads.
-    
+
 -   **Cost Awareness:** Free-tier friendly architecture & FinOps trade-offs.
 
 #### Tools: `AWS`,`GCP`, `Terraform`, `GitHub Actions`, `Docker`, `Kubernetes`, `Prometheus`, `Grafana`, `ArgoCD`.
@@ -126,11 +126,11 @@ To optimize costs for a free-tier lab, nodes are assigned public IPs while ingre
 In production, this design should be replaced with:
 
 -   Private nodes
-    
+
 -   Cloud NAT
-    
+
 -   Access via VPN or Identity-Aware Proxy (IAP)
-    
+
 
 This trade-off prioritizes affordability while maintaining controlled access.
 
@@ -152,38 +152,38 @@ Instead of using personal tokens (PATs), this architecture uses a **GitHub App**
 ### Why GitHub App over PAT?
 
 -   **Security:** Tokens are temporary (1-hour expiration).
-    
+
 -   **Audit:** Actions are logged under the bot's identity, not a personal user.
-    
+
 -   **Scope:** Permissions are strictly limited to `contents:write` and `pull_requests:write` only on the GitOps repository.
-    
+
 
 ### Setup Steps
 
 1.  **Create the GitHub App:**
-    
+
     -   Go to **Developer Settings** → **GitHub Apps** → **New GitHub App**.
-        
+
     -   **Permissions:** * `Repository contents: Read & write`
-        
+
         -   `Pull requests: Read & write`
-            
+
     -   **Install** the app in the `k8s-configs` repository.
-        
+
 2.  **Store Secrets in the Infrastructure Repo:** Navigate to `Settings → Secrets and variables → Actions` and add:
-    
+
     -   `GH_APP_ID`: The App ID from your GitHub App settings.
-        
+
     -   `GH_APP_PRIVATE_KEY`: The full content of the generated `.pem` private key.
-        
+
 3.  **Automation Flow:** The `sync-identity` workflow uses these secrets to generate a dynamic token, allowing the "Robot" to:
-    
+
     -   Detect changes in `sre-agent-identity`.
-        
+
     -   Checkout the `k8s-configs` repo.
-        
+
     -   Inject the GCP Service Account email via Kustomize patches.
-        
+
     -   Open a Pull Request for manual/automated review.
 
 ## 🚀 Getting Started — Prerequisites
@@ -274,47 +274,47 @@ The current SRE agent is a platform-integrated microservice designed to evolve i
 ### Current Capabilities
 
 -   Health endpoint for Kubernetes probes
-    
+
 -   Prometheus metrics exposure
-    
+
 -   Secure configuration via Vault & Workload Identity
-    
+
 -   Integration point for observability and automation pipelines
-    
+
 
 👉 It provides the operational foundation for future AIOps capabilities.
 
 ### Not Implemented Yet
 
 -   Automatic remediation
-    
+
 -   Incident analysis
-    
+
 -   GitOps auto-PR generation
-    
+
 -   Self-healing actions
-    
+
 -   AI-driven recommendations
-    
+
 
 ### Evolution Roadmap
 
-**Level 1 — Observability Agent (current)**  
+**Level 1 — Observability Agent (current)**
 Health, metrics, secure config.
 
-**Level 2 — Incident Analyzer**  
+**Level 2 — Incident Analyzer**
 Alertmanager integration & incident summaries.
 
-**Level 3 — Recommendation Engine**  
+**Level 3 — Recommendation Engine**
 Suggest scaling & remediation actions.
 
-**Level 4 — Self-Healing Automation**  
+**Level 4 — Self-Healing Automation**
 Safe Kubernetes API remediations.
 
-**Level 5 — GitOps Auto-Remediation**  
+**Level 5 — GitOps Auto-Remediation**
 Create PRs for configuration fixes.
 
-**Level 6 — AI-Powered SRE**  
+**Level 6 — AI-Powered SRE**
 Vertex AI for anomaly detection & incident analysis.
 
 ---
@@ -384,17 +384,17 @@ This repo has its own independent lifecycle:
 ## 🧠 Key Engineering Decisions
 
 -   DRY multi-environment architecture with Terragrunt
-    
+
 -   Keyless authentication via OIDC & Workload Identity
-    
+
 -   Native S3 locking instead of DynamoDB for reduced IAM coupling
-    
+
 -   Public node trade-off for free-tier affordability
-    
+
 -   Zero-trust internal networking via Network Policies (Cilium)
-    
+
 -   GitOps-first platform bootstrapping
-    
+
 -   Observability-first workload design
 
 
