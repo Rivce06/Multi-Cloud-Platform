@@ -145,24 +145,46 @@ This trade-off prioritizes affordability while maintaining controlled access.
 
 ---
 
-## 🤖 GitOps Bot Authentication (Cross-Repo Automation)
+### 🤖 Robot: GitHub App Authentication (Cross-Repo Glue)
 
-To allow the infrastructure pipeline to create Pull Requests in the GitOps repository, a GitHub bot token is used.
+Instead of using personal tokens (PATs), this architecture uses a **GitHub App** to orchestrate cross-repository automation. This follows the **Least Privilege** principle by providing short-lived, scoped credentials for the "Robot" to bridge the Infrastructure and GitOps repositories.
 
-### Steps
+### Why GitHub App over PAT?
 
-1.  Create a **Personal Access Token (classic)**  
-    Permissions: `repo`  
-    Suggested name: `PLATFORM_BOT_TOKEN`
+-   **Security:** Tokens are temporary (1-hour expiration).
     
-2.  Store it in the infrastructure repository:
+-   **Audit:** Actions are logged under the bot's identity, not a personal user.
+    
+-   **Scope:** Permissions are strictly limited to `contents:write` and `pull_requests:write` only on the GitOps repository.
     
 
-Settings → Secrets → Actions
+### Setup Steps
 
-`PAT_GITHUB = <token>` 
-
-This enables automated PR creation for image updates and configuration changes.
+1.  **Create the GitHub App:**
+    
+    -   Go to **Developer Settings** → **GitHub Apps** → **New GitHub App**.
+        
+    -   **Permissions:** * `Repository contents: Read & write`
+        
+        -   `Pull requests: Read & write`
+            
+    -   **Install** the app in the `k8s-configs` repository.
+        
+2.  **Store Secrets in the Infrastructure Repo:** Navigate to `Settings → Secrets and variables → Actions` and add:
+    
+    -   `GH_APP_ID`: The App ID from your GitHub App settings.
+        
+    -   `GH_APP_PRIVATE_KEY`: The full content of the generated `.pem` private key.
+        
+3.  **Automation Flow:** The `sync-identity` workflow uses these secrets to generate a dynamic token, allowing the "Robot" to:
+    
+    -   Detect changes in `sre-agent-identity`.
+        
+    -   Checkout the `k8s-configs` repo.
+        
+    -   Inject the GCP Service Account email via Kustomize patches.
+        
+    -   Open a Pull Request for manual/automated review.
 
 ## 🚀 Getting Started — Prerequisites
 
