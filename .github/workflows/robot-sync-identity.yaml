@@ -78,10 +78,15 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           path: k8s-configs
 
-      - name: Inject Identity
+      # --- 4. GITOPS UPDATE & PR ---
+      - name: Inject Identity and Project ID
         working-directory: k8s-configs
         run: |
           sed -i "s|value: \".*\"|value: \"${{ steps.get-email.outputs.SA_EMAIL }}\"|" ${{ env.CONFIG_FILE_PATH }}
+          sed -i "s/YOUR_PROJECT_ID/${{ secrets.GCP_PROJECT_ID }}/g" deploy/base/deployment.yaml
+          sed -i "s/YOUR_PROJECT_ID/${{ secrets.GCP_PROJECT_ID }}/g" deploy/base/serviceaccount.yaml
+          
+          echo "✅ All placeholders (Identity & Project ID) have been injected."
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
