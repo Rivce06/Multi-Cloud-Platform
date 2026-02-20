@@ -1,0 +1,76 @@
+name: 'Post-Deploy: Vault & GitHub App Config'
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Infra Apply (Production)"]
+    types: [completed]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  vault-setup:
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_REGION: us-central1
+      CLUSTER_NAME: ${{ secrets.GKE_CLUSTER_NAME }}
+      VAULT_NAMESPACE: vault
+      APP_NAMESPACE: sre-workloads
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # --- 1. AUTHENTICATION (OIDC) ---
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Get GKE Credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.CLUSTER_NAME }}
+          location: ${{ env.GCP_REGION }}
+
+      # --- 2. VAULT CONFIGURATION ---
+      - name: Configure Vault API & Secrets
+        run: |
+          kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=vault -n ${{ env.VAULT_NAMESPACE }} --timeout=300s
+          
+          VAULT_POD=$(kubectl get pods -n ${{ env.VAULT_NAMESPACE }} -l "app.kubernetes.io/name=vault" -o jsonpath="{.items.metadata.name}")
+
+          echo "🔐 Initiating Vault Logical Configuration..."
+
+          kubectl exec -n ${{ env.VAULT_NAMESPACE }} $VAULT_POD -- vault secrets enable -path=secret kv-v2 || echo "KV already enabled"
+          kubectl exec -n ${{ env.VAULT_NAMESPACE }} $VAULT_POD -- vault auth enable kubernetes || echo "K8s Auth already enabled"
+
+          kubectl exec -n ${{ env.VAULT_NAMESPACE }} $VAULT_POD -- vault kv put secret/github-app \
+            app_id="${{ secrets.GH_APP_ID }}" \
+            private_key="${{ secrets.GH_APP_PRIVATE_KEY }}"
+
+          kubectl exec -n ${{ env.VAULT_NAMESPACE }} $VAULT_POD -- vault write auth/kubernetes/config \
+            kubernetes_host="https://kubernetes.default.svc:443" \
+            disable_local_ca_jwt=true
+
+          kubectl exec -n ${{ env.VAULT_NAMESPACE }} $VAULT_POD -- sh -c "echo 'path \"secret/data/github-app\" { capabilities = [\"read\"] }' | vault policy write sre-agent-policy -"
+
+          kubectl exec -n ${{ env.VAULT_NAMESPACE }} $VAULT_POD -- vault write auth/kubernetes/role/sre-agent-role \
+            bound_service_account_names=sre-agent-sa \
+            bound_service_account_namespaces=${{ env.APP_NAMESPACE }} \
+            policies=sre-agent-policy \
+            ttl=1h
+
+          echo "✅ Vault successfully configured for the GitHub App."
+
+      # --- 3. REFRESH APP ---
+      - name: Restart SRE Agent
+        run: |
+          kubectl rollout restart deployment sre-agent -n ${{ env.APP_NAMESPACE }}
+          echo "🚀 SRE Agent deployment updated with ephemeral secrets."
