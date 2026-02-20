@@ -16,8 +16,8 @@ env:
   GCP_REGION: us-central1
   AWS_REGION: us-east-1
   ENVIRONMENT: dev
-  CONFIG_REPO: "Rivce06/k8s-configs"
-  CONFIG_FILE_PATH: "platform/sre-agent/overlays/dev/service_account_patch.yaml"
+  CONFIG_REPO: "Rivce06/sre-agent"
+  CONFIG_FILE_PATH: "overlays/dev/kustomization.yaml"
 
 jobs:
   sync-identity:
