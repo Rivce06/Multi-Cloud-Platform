@@ -80,7 +80,7 @@ jobs:
 
       # --- 4. GITOPS UPDATE & PR ---
       - name: Inject Identity and Project ID
-        working-directory: k8s-configs
+        working-directory: sre-agent
         run: |
           sed -i "s|value: \".*\"|value: \"${{ steps.get-email.outputs.SA_EMAIL }}\"|" ${{ env.CONFIG_FILE_PATH }}
           sed -i "s/YOUR_PROJECT_ID/${{ secrets.GCP_PROJECT_ID }}/g" deploy/base/deployment.yaml
