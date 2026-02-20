@@ -45,7 +45,7 @@ resource "kubernetes_manifest" "root_app" {
     "spec" = {
       "project" = "default"
       "source" = {
-        "repoURL"        = "https://github.com"
+        "repoURL"        = "https://github.com/Rivce06/k8s-configs.git"
         "targetRevision" = "main"
         "path"           = "bootstrap"
       }
