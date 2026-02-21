@@ -1,4 +1,4 @@
-name: 'Sync Identity to GitOps'
+name: Sync Identity to SRE Agent
 
 on:
   push:
@@ -16,19 +16,19 @@ env:
   GCP_REGION: us-central1
   AWS_REGION: us-east-1
   ENVIRONMENT: dev
-  CONFIG_REPO: "Rivce06/sre-agent"
-  CONFIG_FILE_PATH: "overlays/dev/kustomization.yaml"
+  APP_REPO: "Rivce06/sre-agent"
+  KUSTOMIZE_PATH: "overlays/dev/kustomization.yaml"
 
 jobs:
   sync-identity:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Infra Code
         uses: actions/checkout@v4
 
-      # --- 1. AUTHENTICATION OIDC ---
+      # ---------- AUTH ----------
       - name: Authenticate to Google Cloud
-        id: auth
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_PROVIDER }}
@@ -40,8 +40,8 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # --- 2. EXTRACT DATA FROM TERRAGRUNT ---
-      - name: Setup Terraform & Terragrunt
+      # ---------- TERRAFORM ----------
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.10.0
@@ -59,48 +59,58 @@ jobs:
           terragrunt init -backend-config="region=${{ env.AWS_REGION }}"
           SA_EMAIL=$(terragrunt output -raw gcp_service_account_email)
           echo "SA_EMAIL=$SA_EMAIL" >> $GITHUB_OUTPUT
-          echo "✅ Identity detected: $SA_EMAIL"
+          echo "Detected: $SA_EMAIL"
 
-      # --- 3. GITHUB APP AUTH ---
+      # ---------- GITHUB APP AUTH ----------
       - name: Generate GitHub App Token
         id: app-token
         uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.GH_APP_ID }}
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
-          owner: "Rivce06"
+          owner: Rivce06
 
-      # --- 4. GITOPS UPDATE & PR ---
-      - name: Checkout Config Repo
+      # ---------- UPDATE APP REPO ----------
+      - name: Checkout SRE Agent Repo
         uses: actions/checkout@v4
         with:
-          repository: ${{ env.CONFIG_REPO }}
+          repository: ${{ env.APP_REPO }}
           token: ${{ steps.app-token.outputs.token }}
-          path: k8s-configs
+          path: app-repo
 
-      # --- 4. GITOPS UPDATE & PR ---
-      - name: Inject Identity and Project ID
-        working-directory: sre-agent
+      - name: Inject Identity & Project ID
+        working-directory: app-repo
         run: |
-          sed -i "s|value: \".*\"|value: \"${{ steps.get-email.outputs.SA_EMAIL }}\"|" ${{ env.CONFIG_FILE_PATH }}
-          sed -i "s/YOUR_PROJECT_ID/${{ secrets.GCP_PROJECT_ID }}/g" deploy/base/deployment.yaml
-          sed -i "s/YOUR_PROJECT_ID/${{ secrets.GCP_PROJECT_ID }}/g" deploy/base/serviceaccount.yaml
-          
-          echo "✅ All placeholders (Identity & Project ID) have been injected."
+          echo "Updating Workload Identity..."
+
+          sed -i "s|value: \".*\"|value: \"${{ steps.get-email.outputs.SA_EMAIL }}\"|" ${{ env.KUSTOMIZE_PATH }}
+
+          sed -i "s/YOUR_PROJECT_ID/${{ env.GCP_PROJECT_ID }}/g" deploy/base/deployment.yaml
+          sed -i "s/YOUR_PROJECT_ID/${{ env.GCP_PROJECT_ID }}/g" deploy/base/serviceaccount.yaml
+
+      - name: Check for changes
+        id: git-check
+        working-directory: app-repo
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create Pull Request
+        if: steps.git-check.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ steps.app-token.outputs.token }}
-          path: k8s-configs
-          commit-message: "chore(identity): update gcp service account to ${{ steps.get-email.outputs.SA_EMAIL }}"
+          path: app-repo
+          commit-message: "chore(identity): sync workload identity"
           committer: "Platform Robot <bot@platform.engineering>"
           author: "Platform Robot <bot@platform.engineering>"
-          branch: "robot/identity-update"
-          push-sha: true
-          title: "🤖 [Identity Sync] Update Workload Identity for SRE Agent"
+          branch: "robot/identity-sync"
+          title: "🤖 Sync Workload Identity"
           body: |
-            ## 🤖 Automated Identity Update
-            - **New Identity:** `${{ steps.get-email.outputs.SA_EMAIL }}`
-            - **Environment:** `${{ env.ENVIRONMENT }}`
-            - **Action:** Syncing GSA from Infra Repo to GitOps Overlays.
+            ## Automated Identity Sync
+            - GSA: `${{ steps.get-email.outputs.SA_EMAIL }}`
+            - Project: `${{ env.GCP_PROJECT_ID }}`
+            - Source: Terraform state
